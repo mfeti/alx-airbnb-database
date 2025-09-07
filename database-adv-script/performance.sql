@@ -15,6 +15,7 @@
 -- =====================================================
 
 -- Initial Query: Comprehensive Booking Report
+-- This query retrieves all bookings along with user details, property details, and payment details
 -- Expected to be slow due to multiple JOINs and lack of optimization
 SELECT 
     b.booking_id,
@@ -24,7 +25,7 @@ SELECT
     b.status AS booking_status,
     b.created_at AS booking_date,
     
-    -- User Information
+    -- User Information (Guest)
     u.user_id,
     u.first_name AS guest_first_name,
     u.last_name AS guest_last_name,
@@ -37,7 +38,7 @@ SELECT
     p.name AS property_name,
     p.description AS property_description,
     p.location AS property_location,
-    p.pricepernight,
+    p.price_per_night,
     p.created_at AS property_listing_date,
     
     -- Host Information
@@ -64,32 +65,32 @@ SELECT
     (b.total_price / DATEDIFF(b.end_date, b.start_date)) AS price_per_night_actual,
     
     -- Subqueries for additional metrics (INEFFICIENT)
-    (SELECT COUNT(*) FROM Booking b2 WHERE b2.user_id = u.user_id) AS user_total_bookings,
-    (SELECT AVG(r2.rating) FROM Review r2 WHERE r2.property_id = p.property_id) AS property_avg_rating,
-    (SELECT COUNT(*) FROM Review r3 WHERE r3.property_id = p.property_id) AS property_total_reviews
+    (SELECT COUNT(*) FROM bookings b2 WHERE b2.user_id = u.user_id) AS user_total_bookings,
+    (SELECT AVG(r2.rating) FROM reviews r2 WHERE r2.property_id = p.property_id) AS property_avg_rating,
+    (SELECT COUNT(*) FROM reviews r3 WHERE r3.property_id = p.property_id) AS property_total_reviews
 
 FROM 
-    Booking b
+    bookings b
     
     -- Join with User (Guest)
-    LEFT JOIN User u ON b.user_id = u.user_id
+    LEFT JOIN users u ON b.user_id = u.user_id
     
     -- Join with Property
-    LEFT JOIN Property p ON b.property_id = p.property_id
+    LEFT JOIN properties p ON b.property_id = p.property_id
     
     -- Join with Host (User table again)
-    LEFT JOIN User h ON p.host_id = h.user_id
+    LEFT JOIN users h ON p.host_id = h.user_id
     
     -- Join with Payment
-    LEFT JOIN Payment pay ON b.booking_id = pay.booking_id
+    LEFT JOIN payments pay ON b.booking_id = pay.booking_id
     
-    -- Join with Review
-    LEFT JOIN Review r ON b.booking_id = r.booking_id
+    -- Join with Review (Note: reviews table doesn't have booking_id in schema)
+    LEFT JOIN reviews r ON r.property_id = p.property_id AND r.user_id = u.user_id
 
 -- Filtering conditions that might cause performance issues
 WHERE 
     b.start_date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-    AND b.status IN ('confirmed', 'completed')
+    AND b.status IN ('confirmed', 'canceled')
     AND p.location LIKE '%New York%'
     
 ORDER BY 
@@ -99,7 +100,8 @@ ORDER BY
 -- PERFORMANCE ANALYSIS OF INITIAL QUERY
 -- =====================================================
 
--- Use EXPLAIN to analyze the initial query performance
+-- Use EXPLAIN ANALYZE to analyze the initial query performance
+-- This identifies inefficiencies in the query execution plan
 EXPLAIN ANALYZE 
 SELECT 
     b.booking_id,
@@ -111,12 +113,12 @@ SELECT
     p.location,
     pay.amount,
     pay.payment_method,
-    (SELECT COUNT(*) FROM Booking b2 WHERE b2.user_id = u.user_id) AS user_booking_count
+    (SELECT COUNT(*) FROM bookings b2 WHERE b2.user_id = u.user_id) AS user_booking_count
 FROM 
-    Booking b
-    LEFT JOIN User u ON b.user_id = u.user_id
-    LEFT JOIN Property p ON b.property_id = p.property_id
-    LEFT JOIN Payment pay ON b.booking_id = pay.booking_id
+    bookings b
+    LEFT JOIN users u ON b.user_id = u.user_id
+    LEFT JOIN properties p ON b.property_id = p.property_id
+    LEFT JOIN payments pay ON b.booking_id = pay.booking_id
 WHERE 
     b.start_date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
     AND b.status = 'confirmed'
@@ -145,7 +147,7 @@ SELECT
     -- Essential Property Info Only
     p.name AS property_name,
     p.location,
-    p.pricepernight,
+    p.price_per_night,
     
     -- Essential Payment Info
     pay.amount AS payment_amount,
@@ -155,10 +157,10 @@ SELECT
     DATEDIFF(b.end_date, b.start_date) AS stay_duration
 
 FROM 
-    Booking b
-    INNER JOIN User u ON b.user_id = u.user_id  -- Changed to INNER JOIN (faster)
-    INNER JOIN Property p ON b.property_id = p.property_id  -- Changed to INNER JOIN
-    LEFT JOIN Payment pay ON b.booking_id = pay.booking_id  -- Keep LEFT JOIN for payments
+    bookings b
+    INNER JOIN users u ON b.user_id = u.user_id  -- Changed to INNER JOIN (faster)
+    INNER JOIN properties p ON b.property_id = p.property_id  -- Changed to INNER JOIN
+    LEFT JOIN payments pay ON b.booking_id = pay.booking_id  -- Keep LEFT JOIN for payments
     
 WHERE 
     b.start_date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
@@ -185,7 +187,7 @@ SELECT
     SUM(total_price) AS total_spent,
     AVG(total_price) AS avg_booking_price,
     MAX(start_date) AS last_booking_date
-FROM Booking 
+FROM bookings
 GROUP BY user_id;
 
 -- Step 2: Create temp table for property statistics
@@ -195,9 +197,9 @@ SELECT
     COUNT(r.review_id) AS total_reviews,
     AVG(r.rating) AS avg_rating,
     COUNT(b.booking_id) AS total_bookings
-FROM Property p
-LEFT JOIN Review r ON p.property_id = r.property_id
-LEFT JOIN Booking b ON p.property_id = b.property_id
+FROM properties p
+LEFT JOIN reviews r ON p.property_id = r.property_id
+LEFT JOIN bookings b ON p.property_id = b.property_id
 GROUP BY p.property_id;
 
 -- Step 3: Optimized main query using pre-aggregated data
@@ -218,7 +220,7 @@ SELECT
     -- Property information
     p.name AS property_name,
     p.location,
-    p.pricepernight,
+    p.price_per_night,
     ps.avg_rating AS property_avg_rating,
     ps.total_reviews AS property_total_reviews,
     
@@ -230,12 +232,12 @@ SELECT
     DATEDIFF(b.end_date, b.start_date) AS stay_duration
 
 FROM 
-    Booking b
-    INNER JOIN User u ON b.user_id = u.user_id
-    INNER JOIN Property p ON b.property_id = p.property_id
+    bookings b
+    INNER JOIN users u ON b.user_id = u.user_id
+    INNER JOIN properties p ON b.property_id = p.property_id
     LEFT JOIN user_booking_stats ubs ON u.user_id = ubs.user_id
     LEFT JOIN property_stats ps ON p.property_id = ps.property_id
-    LEFT JOIN Payment pay ON b.booking_id = pay.booking_id
+    LEFT JOIN payments pay ON b.booking_id = pay.booking_id
     
 WHERE 
     b.start_date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
@@ -269,7 +271,7 @@ SELECT
     -- Property information
     p.name AS property_name,
     p.location,
-    p.pricepernight,
+    p.price_per_night,
     
     -- Payment information
     pay.amount AS payment_amount,
@@ -286,10 +288,10 @@ SELECT
     ROW_NUMBER() OVER (ORDER BY b.start_date DESC) AS row_num
 
 FROM 
-    Booking b
-    INNER JOIN User u ON b.user_id = u.user_id
-    INNER JOIN Property p ON b.property_id = p.property_id
-    LEFT JOIN Payment pay ON b.booking_id = pay.booking_id
+    bookings b
+    INNER JOIN users u ON b.user_id = u.user_id
+    INNER JOIN properties p ON b.property_id = p.property_id
+    LEFT JOIN payments pay ON b.booking_id = pay.booking_id
     
 WHERE 
     b.start_date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
@@ -325,11 +327,11 @@ SELECT
     pay.amount AS payment_amount
 
 FROM 
-    Booking b
+    bookings b
     -- Use INNER JOINs for better performance (assumes data integrity)
-    INNER JOIN User u ON b.user_id = u.user_id
-    INNER JOIN Property p ON b.property_id = p.property_id
-    INNER JOIN Payment pay ON b.booking_id = pay.booking_id
+    INNER JOIN users u ON b.user_id = u.user_id
+    INNER JOIN properties p ON b.property_id = p.property_id
+    INNER JOIN payments pay ON b.booking_id = pay.booking_id
     
 WHERE 
     -- Most selective condition first
@@ -354,9 +356,9 @@ SELECT
     COUNT(DISTINCT b.user_id) AS unique_guests,
     COUNT(DISTINCT b.property_id) AS properties_booked
 FROM 
-    Booking b
-    INNER JOIN Property p ON b.property_id = p.property_id
-WHERE 
+    bookings b
+    INNER JOIN properties p ON b.property_id = p.property_id
+WHERE
     b.start_date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
     AND b.status = 'confirmed'
     AND p.location = 'New York';
@@ -370,8 +372,8 @@ SELECT
     p.name AS property_name,
     p.location
 FROM 
-    Booking b
-    INNER JOIN Property p ON b.property_id = p.property_id
+    bookings b
+    INNER JOIN properties p ON b.property_id = p.property_id
 WHERE 
     b.user_id = ? -- Parameter placeholder
     AND b.status IN ('confirmed', 'completed')
@@ -388,8 +390,8 @@ SELECT
     u.first_name,
     u.last_name
 FROM 
-    Booking b
-    INNER JOIN User u ON b.user_id = u.user_id
+    bookings b
+    INNER JOIN users u ON b.user_id = u.user_id
 WHERE 
     b.property_id = ? -- Parameter placeholder
     AND b.start_date >= CURDATE()
@@ -407,10 +409,10 @@ ORDER BY
 -- Original complex query performance test
 EXPLAIN ANALYZE SELECT COUNT(*) FROM (
     SELECT b.booking_id
-    FROM Booking b
-    LEFT JOIN User u ON b.user_id = u.user_id
-    LEFT JOIN Property p ON b.property_id = p.property_id
-    LEFT JOIN Payment pay ON b.booking_id = pay.booking_id
+    FROM bookings b
+    LEFT JOIN users u ON b.user_id = u.user_id
+    LEFT JOIN properties p ON b.property_id = p.property_id
+    LEFT JOIN payments pay ON b.booking_id = pay.booking_id
     WHERE b.start_date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
     AND b.status = 'confirmed'
     AND p.location LIKE '%New York%'
@@ -419,9 +421,9 @@ EXPLAIN ANALYZE SELECT COUNT(*) FROM (
 -- Optimized query performance test
 EXPLAIN ANALYZE SELECT COUNT(*) FROM (
     SELECT b.booking_id
-    FROM Booking b
-    INNER JOIN User u ON b.user_id = u.user_id
-    INNER JOIN Property p ON b.property_id = p.property_id
+    FROM bookings b
+    INNER JOIN users u ON b.user_id = u.user_id
+    INNER JOIN properties p ON b.property_id = p.property_id
     WHERE p.location = 'New York'
     AND b.status = 'confirmed'
     AND b.start_date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
