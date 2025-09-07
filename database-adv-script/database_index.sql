@@ -20,16 +20,16 @@
 -- ALTER TABLE User ADD PRIMARY KEY (user_id);
 
 -- Index on email for login and user lookup operations
-CREATE INDEX idx_user_email ON User(email);
+CREATE INDEX idx_user_email ON users(email);
 
 -- Index on phone number for contact lookup
-CREATE INDEX idx_user_phone ON User(phone_number);
+CREATE INDEX idx_user_phone ON users(phone_number);
 
 -- Index on creation date for user registration analysis
-CREATE INDEX idx_user_created_at ON User(created_at);
+CREATE INDEX idx_user_created_at ON users(created_at);
 
 -- Composite index on first_name and last_name for name-based searches
-CREATE INDEX idx_user_full_name ON User(first_name, last_name);
+CREATE INDEX idx_user_full_name ON users(first_name, last_name);
 
 -- Index on role if the column exists (for user type filtering)
 -- CREATE INDEX idx_user_role ON User(role);
@@ -42,22 +42,22 @@ CREATE INDEX idx_user_full_name ON User(first_name, last_name);
 -- ALTER TABLE Property ADD PRIMARY KEY (property_id);
 
 -- Index on host_id for finding properties by host (foreign key)
-CREATE INDEX idx_property_host_id ON Property(host_id);
+CREATE INDEX idx_property_host_id ON properties(host_id);
 
 -- Index on location for location-based searches
-CREATE INDEX idx_property_location ON Property(location);
+CREATE INDEX idx_property_location ON properties(location);
 
 -- Index on pricepernight for price-based filtering and sorting
-CREATE INDEX idx_property_price ON Property(pricepernight);
+CREATE INDEX idx_property_price ON properties(price_per_night);
 
 -- Index on creation date for property listing analysis
-CREATE INDEX idx_property_created_at ON Property(created_at);
+CREATE INDEX idx_property_created_at ON properties(created_at);
 
 -- Composite index on location and price for combined location-price searches
-CREATE INDEX idx_property_location_price ON Property(location, pricepernight);
+CREATE INDEX idx_property_location_price ON properties(location, price_per_night);
 
 -- Index on property name for text-based searches
-CREATE INDEX idx_property_name ON Property(name);
+CREATE INDEX idx_property_name ON properties(name);
 
 -- =====================================================
 -- Booking Table Indexes
@@ -67,37 +67,37 @@ CREATE INDEX idx_property_name ON Property(name);
 -- ALTER TABLE Booking ADD PRIMARY KEY (booking_id);
 
 -- Index on user_id for finding bookings by user (foreign key)
-CREATE INDEX idx_booking_user_id ON Booking(user_id);
+CREATE INDEX idx_booking_user_id ON bookings(user_id);
 
 -- Index on property_id for finding bookings by property (foreign key)
-CREATE INDEX idx_booking_property_id ON Booking(property_id);
+CREATE INDEX idx_booking_property_id ON bookings(property_id);
 
 -- Index on start_date for date-based queries and partitioning
-CREATE INDEX idx_booking_start_date ON Booking(start_date);
+CREATE INDEX idx_booking_start_date ON bookings(start_date);
 
 -- Index on end_date for checkout date queries
-CREATE INDEX idx_booking_end_date ON Booking(end_date);
+CREATE INDEX idx_booking_end_date ON bookings(end_date);
 
 -- Index on booking status for filtering by booking state
-CREATE INDEX idx_booking_status ON Booking(status);
+CREATE INDEX idx_booking_status ON bookings(status);
 
 -- Index on total_price for price-based analysis
-CREATE INDEX idx_booking_total_price ON Booking(total_price);
+CREATE INDEX idx_booking_total_price ON bookings(total_price);
 
 -- Index on creation date for booking analysis
-CREATE INDEX idx_booking_created_at ON Booking(created_at);
+CREATE INDEX idx_booking_created_at ON bookings(created_at);
 
 -- Composite index on user_id and start_date for user booking history
-CREATE INDEX idx_booking_user_date ON Booking(user_id, start_date);
+CREATE INDEX idx_booking_user_date ON bookings(user_id, start_date);
 
 -- Composite index on property_id and start_date for property booking calendar
-CREATE INDEX idx_booking_property_date ON Booking(property_id, start_date);
+CREATE INDEX idx_booking_property_date ON bookings(property_id, start_date);
 
 -- Composite index for date range queries (check-in/check-out availability)
-CREATE INDEX idx_booking_date_range ON Booking(start_date, end_date);
+CREATE INDEX idx_booking_date_range ON bookings(start_date, end_date);
 
 -- Composite index on status and dates for active booking queries
-CREATE INDEX idx_booking_status_dates ON Booking(status, start_date, end_date);
+CREATE INDEX idx_booking_status_dates ON bookings(status, start_date, end_date);
 
 -- =====================================================
 -- Review Table Indexes
@@ -107,25 +107,25 @@ CREATE INDEX idx_booking_status_dates ON Booking(status, start_date, end_date);
 -- ALTER TABLE Review ADD PRIMARY KEY (review_id);
 
 -- Index on property_id for finding reviews by property (foreign key)
-CREATE INDEX idx_review_property_id ON Review(property_id);
+CREATE INDEX idx_review_property_id ON reviews(property_id);
 
 -- Index on user_id for finding reviews by user (foreign key)
-CREATE INDEX idx_review_user_id ON Review(user_id);
+CREATE INDEX idx_review_user_id ON reviews(user_id);
 
--- Index on booking_id for finding review by booking (foreign key)
-CREATE INDEX idx_review_booking_id ON Review(booking_id);
+-- Index on booking_id for finding review by booking (foreign key - not in schema)
+-- CREATE INDEX idx_review_booking_id ON reviews(booking_id);
 
 -- Index on rating for rating-based filtering and sorting
-CREATE INDEX idx_review_rating ON Review(rating);
+CREATE INDEX idx_review_rating ON reviews(rating);
 
 -- Index on creation date for recent reviews
-CREATE INDEX idx_review_created_at ON Review(created_at);
+CREATE INDEX idx_review_created_at ON reviews(created_at);
 
 -- Composite index on property_id and rating for property rating analysis
-CREATE INDEX idx_review_property_rating ON Review(property_id, rating);
+CREATE INDEX idx_review_property_rating ON reviews(property_id, rating);
 
 -- Composite index on property_id and created_at for recent property reviews
-CREATE INDEX idx_review_property_date ON Review(property_id, created_at);
+CREATE INDEX idx_review_property_date ON reviews(property_id, created_at);
 
 -- =====================================================
 -- Payment Table Indexes
@@ -135,22 +135,22 @@ CREATE INDEX idx_review_property_date ON Review(property_id, created_at);
 -- ALTER TABLE Payment ADD PRIMARY KEY (payment_id);
 
 -- Index on booking_id for finding payments by booking (foreign key)
-CREATE INDEX idx_payment_booking_id ON Payment(booking_id);
+CREATE INDEX idx_payment_booking_id ON payments(booking_id);
 
 -- Index on payment_method for payment type analysis
-CREATE INDEX idx_payment_method ON Payment(payment_method);
+CREATE INDEX idx_payment_method ON payments(payment_method);
 
 -- Index on payment_date for payment timeline analysis
-CREATE INDEX idx_payment_date ON Payment(payment_date);
+CREATE INDEX idx_payment_date ON payments(payment_date);
 
 -- Index on amount for payment amount analysis
-CREATE INDEX idx_payment_amount ON Payment(amount);
+CREATE INDEX idx_payment_amount ON payments(amount);
 
 -- Index on payment status if the column exists
 -- CREATE INDEX idx_payment_status ON Payment(status);
 
 -- Composite index on payment_date and amount for financial reporting
-CREATE INDEX idx_payment_date_amount ON Payment(payment_date, amount);
+CREATE INDEX idx_payment_date_amount ON payments(payment_date, amount);
 
 -- =====================================================
 -- Message Table Indexes (if exists)
@@ -176,11 +176,11 @@ CREATE INDEX idx_payment_date_amount ON Payment(payment_date, amount);
 -- CREATE INDEX idx_user_email_lower ON User(LOWER(email));
 
 -- Covering index for user booking summary (includes all needed columns)
-CREATE INDEX idx_booking_user_summary ON Booking(user_id, start_date) 
+CREATE INDEX idx_booking_user_summary ON bookings(user_id, start_date) 
 INCLUDE (property_id, total_price, status);
 
 -- Covering index for property performance metrics
-CREATE INDEX idx_property_performance ON Property(location, pricepernight) 
+CREATE INDEX idx_property_performance ON properties(location, price_per_night) 
 INCLUDE (name, created_at);
 
 -- Full-text index for property descriptions (MySQL syntax)
@@ -217,29 +217,52 @@ INCLUDE (name, created_at);
 -- ORDER BY TABLE_NAME, INDEX_NAME, SEQ_IN_INDEX;
 
 -- =====================================================
--- Index Performance Testing Queries
+-- Index Performance Testing with EXPLAIN ANALYZE
 -- =====================================================
 
--- Test query performance with EXPLAIN for these common queries:
+-- Measure query performance BEFORE adding indexes
+-- ======================================================
 
--- 1. Find user by email (should use idx_user_email)
--- EXPLAIN SELECT * FROM User WHERE email = 'user@example.com';
+-- 1. Find user by email performance before indexing
+EXPLAIN ANALYZE SELECT * FROM users WHERE email = 'user@example.com';
 
--- 2. Find bookings by date range (should use idx_booking_date_range)
--- EXPLAIN SELECT * FROM Booking 
--- WHERE start_date >= '2024-01-01' AND end_date <= '2024-12-31';
+-- 2. Find bookings by date range performance before indexing
+EXPLAIN ANALYZE SELECT * FROM bookings 
+WHERE start_date >= '2024-01-01' AND end_date <= '2024-12-31';
 
--- 3. Find properties by location and price (should use idx_property_location_price)
--- EXPLAIN SELECT * FROM Property 
--- WHERE location = 'New York' AND pricepernight BETWEEN 100 AND 300;
+-- 3. Find properties by location and price performance before indexing
+EXPLAIN ANALYZE SELECT * FROM properties 
+WHERE location = 'New York' AND price_per_night BETWEEN 100 AND 300;
 
--- 4. Find user booking history (should use idx_booking_user_date)
--- EXPLAIN SELECT * FROM Booking 
--- WHERE user_id = 123 ORDER BY start_date DESC;
+-- 4. Find user booking history performance before indexing
+EXPLAIN ANALYZE SELECT * FROM bookings 
+WHERE user_id = 'user-uuid-example' ORDER BY start_date DESC;
 
--- 5. Find property reviews with ratings (should use idx_review_property_rating)
--- EXPLAIN SELECT * FROM Review 
--- WHERE property_id = 456 AND rating >= 4;
+-- 5. Find property reviews with ratings performance before indexing
+EXPLAIN ANALYZE SELECT * FROM reviews 
+WHERE property_id = 'property-uuid-example' AND rating >= 4;
+
+-- Measure query performance AFTER adding indexes
+-- ======================================================
+
+-- 1. Find user by email performance after indexing (should use idx_user_email)
+EXPLAIN ANALYZE SELECT * FROM users WHERE email = 'user@example.com';
+
+-- 2. Find bookings by date range performance after indexing (should use idx_booking_date_range)
+EXPLAIN ANALYZE SELECT * FROM bookings 
+WHERE start_date >= '2024-01-01' AND end_date <= '2024-12-31';
+
+-- 3. Find properties by location and price performance after indexing (should use idx_property_location_price)
+EXPLAIN ANALYZE SELECT * FROM properties 
+WHERE location = 'New York' AND price_per_night BETWEEN 100 AND 300;
+
+-- 4. Find user booking history performance after indexing (should use idx_booking_user_date)
+EXPLAIN ANALYZE SELECT * FROM bookings 
+WHERE user_id = 'user-uuid-example' ORDER BY start_date DESC;
+
+-- 5. Find property reviews with ratings performance after indexing (should use idx_review_property_rating)
+EXPLAIN ANALYZE SELECT * FROM reviews 
+WHERE property_id = 'property-uuid-example' AND rating >= 4;
 
 -- =====================================================
 -- Composite Index Strategy Notes
